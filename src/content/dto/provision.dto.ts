@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql'
+import { Field, Int, ObjectType, InputType } from '@nestjs/graphql'
 import { GraphQLJSONObject } from 'graphql-type-json'
 
 @ObjectType()
@@ -41,4 +41,22 @@ export class ProvisionDto {
 
   @Field(() => GraphQLJSONObject)
   metadata: object
+}
+
+@InputType()
+export class CreateContentInput {
+  @Field(() => String)
+  contentTypeId: string
+
+  @Field(() => String)
+  title: string
+
+  @Field(() => String, { nullable: true })
+  description?: string
+
+  @Field(() => String, { nullable: true })
+  url?: string
+
+  @Field(() => String, { nullable: true })
+  cover?: string
 }

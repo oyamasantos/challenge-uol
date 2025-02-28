@@ -8,16 +8,23 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { ContentRepository } from 'src/content/repository'
-import { ProvisionDto } from 'src/content/dto'
+import { ContentType } from 'src/content/entity/content-type.entity'
+import { ProvisionDto, CreateContentInput } from 'src/content/dto'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
 
 @Injectable()
 export class ContentService {
   private readonly logger = new Logger(ContentService.name)
   private readonly expirationTime = 3600 // 1 hour
 
-  constructor(private readonly contentRepository: ContentRepository) {}
+  constructor(
+    private readonly contentRepository: ContentRepository,
+    @InjectRepository(ContentType) private readonly contentTypeRepository: Repository<ContentType>,
+  ) {}
 
   async provision(contentId: string): Promise<ProvisionDto> {
+    this.logger.log(`Provision method called with contentId=${contentId}`)
     if (!contentId) {
       this.logger.error(`Invalid Content ID: ${contentId}`)
       throw new UnprocessableEntityException(`Content ID is invalid: ${contentId}`)
@@ -27,12 +34,12 @@ export class ContentService {
     let content
 
     try {
-      content = await this.contentRepository.findOne(contentId)
+      content = await this.contentRepository.findOneWithRelations(contentId)
     } catch (error) {
       this.logger.error(`Database error while fetching content: ${error}`)
       throw new NotFoundException(`Database error: ${error}`)
     }
-
+    this.logger.log(`Content found: ${JSON.stringify(content)}`)
     if (!content) {
       this.logger.warn(`Content not found for id=${contentId}`)
       throw new NotFoundException(`Content not found: ${contentId}`)
@@ -49,13 +56,17 @@ export class ContentService {
 
     const url = this.generateSignedUrl(content.url || '')
 
-    if (!content.type) {
+    this.logger.log(`Content type found: ${JSON.stringify(content.contentType)}`)
+
+    if (!content.contentType) {
       this.logger.warn(`Missing content type for ID=${contentId}`)
       throw new BadRequestException('Content type is missing')
     }
 
-    if (['pdf', 'image', 'video', 'link'].includes(content.type)) {
-      switch (content.type) {
+    const contentTypeName = content.contentType.name
+
+    if (['pdf', 'image', 'video', 'link'].includes(contentTypeName)) {
+      switch (contentTypeName) {
         case 'pdf':
           return {
             id: content.id,
@@ -127,8 +138,43 @@ export class ContentService {
       }
     }
 
-    this.logger.warn(`Unsupported content type for ID=${contentId}, type=${content.type}`)
-    throw new BadRequestException(`Unsupported content type: ${content.type}`)
+    this.logger.warn(`Unsupported content type for ID=${contentId}, type=${contentTypeName}`)
+    throw new BadRequestException(`Unsupported content type: ${contentTypeName}`)
+  }
+
+  async create(data: CreateContentInput): Promise<ProvisionDto> {
+    const { title, description, url, cover, contentTypeId } = data
+
+    const contentType = await this.contentTypeRepository.findOne({ where: { id: contentTypeId } })
+    if (!contentType) {
+      throw new NotFoundException('Content type not found')
+    }
+
+    const content = this.contentRepository.create({
+      title,
+      description,
+      url,
+      cover,
+      contentType,
+    })
+
+    const savedContent = await this.contentRepository.save(content)
+
+    return {
+      id: savedContent.id,
+      title: savedContent.title,
+      type: savedContent.contentType.name,
+      description: savedContent.description,
+      cover: savedContent.cover,
+      url: savedContent.url,
+      created_at: savedContent.created_at,
+      allow_download: false,
+      is_embeddable: true,
+      format: null,
+      bytes: 0,
+      total_likes: 0,
+      metadata: {},
+    }
   }
 
   private generateSignedUrl(originalUrl: string): string {

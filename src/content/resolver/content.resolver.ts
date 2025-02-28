@@ -1,19 +1,14 @@
-import { Logger, UseGuards } from '@nestjs/common'
-import { Resolver, Args, Context, Query } from '@nestjs/graphql'
-import { ContentService } from 'src/content/service'
-import { ProvisionDto } from 'src/content/dto'
-import { AuthGuard } from 'src/user/guard'
+import { Args, Query, Resolver } from '@nestjs/graphql'
+import { ContentService } from '../service/content.service'
+import { ProvisionDto } from '../dto/provision.dto'
+import { Content } from '../entity/content.entity'
 
-@Resolver()
+@Resolver(() => Content)
 export class ContentResolver {
-  private readonly logger = new Logger(ContentResolver.name)
-
   constructor(private readonly contentService: ContentService) {}
 
-  @UseGuards(AuthGuard)
-  @Query(() => ProvisionDto)
-  provision(@Args('content_id') contentId: string, @Context('req') req): Promise<ProvisionDto> {
-    this.logger.log(`Provisioning content=${contentId} to user=${req.user.id}`)
+  @Query(() => ProvisionDto, { nullable: true })
+  async provision(@Args('contentId') contentId: string): Promise<ProvisionDto> {
     return this.contentService.provision(contentId)
   }
 }

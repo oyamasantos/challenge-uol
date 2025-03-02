@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common'
 import { ContentRepository } from 'src/content/repository'
 import { ContentType } from 'src/content/entity/content-type.entity'
-import { ProvisionDto, CreateContentInput } from 'src/content/dto'
+import { ProvisionDto } from 'src/content/dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 
@@ -21,7 +21,7 @@ export class ContentService {
   constructor(
     private readonly contentRepository: ContentRepository,
     @InjectRepository(ContentType) private readonly contentTypeRepository: Repository<ContentType>,
-  ) {}
+  ) { }
 
   async provision(contentId: string): Promise<ProvisionDto> {
     this.logger.log(`Provision method called with contentId=${contentId}`)
@@ -65,7 +65,7 @@ export class ContentService {
 
     const contentTypeName = content.contentType.name
 
-    if (['pdf', 'image', 'video', 'link'].includes(contentTypeName)) {
+    if (['pdf', 'image', 'video', 'link', 'text'].includes(contentTypeName)) {
       switch (contentTypeName) {
         case 'pdf':
           return {
@@ -135,46 +135,28 @@ export class ContentService {
             bytes: 0,
             metadata: { trusted: content.url?.includes('https') || false },
           }
+        case 'text':
+          return {
+            id: content.id,
+            title: content.title,
+            cover: content.cover,
+            created_at: content.created_at,
+            description: content.description,
+            total_likes: content.total_likes,
+            type: 'text',
+            url: content.url || null,
+            allow_download: false,
+            is_embeddable: false,
+            format: 'plain-text',
+            bytes: content.description ? Buffer.byteLength(content.description, 'utf-8') : 0,
+            metadata: { word_count: content.description ? content.description.split(/\s+/).length : 0 },
+          };
       }
+
     }
 
     this.logger.warn(`Unsupported content type for ID=${contentId}, type=${contentTypeName}`)
     throw new BadRequestException(`Unsupported content type: ${contentTypeName}`)
-  }
-
-  async create(data: CreateContentInput): Promise<ProvisionDto> {
-    const { title, description, url, cover, contentTypeId } = data
-
-    const contentType = await this.contentTypeRepository.findOne({ where: { id: contentTypeId } })
-    if (!contentType) {
-      throw new NotFoundException('Content type not found')
-    }
-
-    const content = this.contentRepository.create({
-      title,
-      description,
-      url,
-      cover,
-      contentType,
-    })
-
-    const savedContent = await this.contentRepository.save(content)
-
-    return {
-      id: savedContent.id,
-      title: savedContent.title,
-      type: savedContent.contentType.name,
-      description: savedContent.description,
-      cover: savedContent.cover,
-      url: savedContent.url,
-      created_at: savedContent.created_at,
-      allow_download: false,
-      is_embeddable: true,
-      format: null,
-      bytes: 0,
-      total_likes: 0,
-      metadata: {},
-    }
   }
 
   private generateSignedUrl(originalUrl: string): string {

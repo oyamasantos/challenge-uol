@@ -21,7 +21,7 @@ export class ContentService {
   constructor(
     private readonly contentRepository: ContentRepository,
     @InjectRepository(ContentType) private readonly contentTypeRepository: Repository<ContentType>,
-  ) { }
+  ) {}
 
   async provision(contentId: string): Promise<ProvisionDto> {
     this.logger.log(`Provision method called with contentId=${contentId}`)
@@ -149,10 +149,11 @@ export class ContentService {
             is_embeddable: false,
             format: 'plain-text',
             bytes: content.description ? Buffer.byteLength(content.description, 'utf-8') : 0,
-            metadata: { word_count: content.description ? content.description.split(/\s+/).length : 0 },
-          };
+            metadata: {
+              word_count: content.description ? content.description.split(/\s+/).length : 0,
+            },
+          }
       }
-
     }
 
     this.logger.warn(`Unsupported content type for ID=${contentId}, type=${contentTypeName}`)

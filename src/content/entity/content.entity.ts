@@ -9,6 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm'
 import { Company } from 'src/company/entity'
+import { ContentType } from './content-type.entity'
 
 @Entity('contents')
 export class Content {
@@ -17,9 +18,6 @@ export class Content {
 
   @Column()
   title: string
-
-  @Column()
-  type: string
 
   @Column()
   description?: string
@@ -41,6 +39,10 @@ export class Content {
 
   @DeleteDateColumn()
   deleted_at: Date | null
+
+  @ManyToOne(() => ContentType, (contentType) => contentType.contents)
+  @JoinColumn({ name: 'content_type_id' })
+  contentType: ContentType
 
   @ManyToOne(() => Company, (company) => company.contents)
   @JoinColumn({ name: 'company_id' })

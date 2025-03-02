@@ -18,8 +18,8 @@ export class ProvisionDto {
   @Field(() => String, { nullable: true })
   cover?: string
 
-  @Field(() => String)
-  url: string
+  @Field(() => String, { nullable: true })
+  url?: string
 
   @Field(() => Date)
   created_at: Date

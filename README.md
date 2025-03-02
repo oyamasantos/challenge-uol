@@ -30,18 +30,8 @@ O que você precisa para configurar o projeto:
 6. Acesse o **Playground do GraphQL**:
    - 👉 [http://localhost:3000/graphql](http://localhost:3000/graphql)
 
-### Tests
+### O que foi feito
 
-Para rodar os testes:
-
-```bash
-npm run test
-```
-
-### Migrations
-
-Caso precise criar novas migrations, utilize o comando:
-
-```bash
-npm run db:create_migration --name=create-xpto-table
-```
+1. Inclusão da tabela content_types, para escalabnilidade de novos tipos de provisionamento.
+2. Corrigido vulnerabilidade no arquito content.repository, que antes estava com a query na unha possibilitando SQL injection, agora esta utilizando query parameters.
+3. Incluindo provisionamento de texto.
